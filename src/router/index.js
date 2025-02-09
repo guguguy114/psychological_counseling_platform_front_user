@@ -56,7 +56,20 @@ const routes = [
         name: 'my_port',
         meta: { title: '我的报告', },
         component: () => import('@/views/MyReportView.vue')
+      },
+      {
+        path: '/main/create_appointment',
+        name: 'create_appointment',
+        meta: { title: '我要预约', },
+        component: () => import('@/views/CreateAppointmentView.vue'),
+      },
+      {
+        path: '/main/consultant_lib',
+        name: 'consultant_lib',
+        meta: { title: '咨询师库', },
+        component: () => import('@/views/ConsultantLibView.vue')
       }
+      
     ]
   },
   {
