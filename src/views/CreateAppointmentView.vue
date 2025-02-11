@@ -1,12 +1,12 @@
 <template>
     <div>
-
+        <!-- 标题和按钮 -->
         <el-row :gutter="10">
             <el-col :span="2">
                 <div style="font-size: 25px; font-weight: bold;">我的预约</div>
             </el-col>
             <el-col :span="22" style="text-align: end; margin-bottom: 20px;">
-                <el-button type="primary">我要预约</el-button>
+                <el-button type="primary" @click="onCreateAppointment">我要预约</el-button>
             </el-col>
         </el-row>
 
@@ -129,10 +129,10 @@
             </el-card>
         </el-dialog>
 
+        <!-- 咨询师评价 -->
         <el-dialog title="咨询师评价" :visible.sync="commentDialogVisible" width="50vw"
             :before-close="commentDialogBeforeClose" v-if="this.currentAppointment !== null">
             <div>
-
                 <el-row :gutter="10">
                     <el-col :span="3" :offset="1">
                         <img src="@/assets/face_images/default_face.jpg" alt="头像" id="face-img">
@@ -202,6 +202,7 @@
             </div>
         </el-dialog>
 
+        <!-- 咨询师档案 -->
         <el-dialog title="咨询师档案" :visible.sync="consultantDialogVisible" width="50vw"
             :before-close="consultantDialogBeforeClose" v-if="this.currentConsultant !== null">
             <div>
@@ -212,7 +213,7 @@
                     <el-col :span="18" :offset="1">
                         <el-row :gutter="10">
                             <el-col :span="24">
-                                <el-descriptions class="margin-top" :column="2" border>
+                                <el-descriptions class="margin-top" :column="5" border direction="vertical">
                                     <el-descriptions-item>
                                         <template slot="label">
                                             <i class="el-icon-user"></i>
@@ -243,6 +244,13 @@
                                     </el-descriptions-item>
                                     <el-descriptions-item v-if="this.currentConsultant !== null">
                                         <template slot="label">
+                                            <i class="el-icon-goods"></i>
+                                            费用：
+                                        </template>
+                                        {{ this.currentConsultant.consultantPrice }}
+                                    </el-descriptions-item>
+                                    <el-descriptions-item v-if="this.currentConsultant !== null">
+                                        <template slot="label">
                                             <i class="el-icon-s-data"></i>
                                             专业背景：
                                         </template>
@@ -262,14 +270,161 @@
                             <div class="text item">
                                 {{ this.currentConsultant.consultantBrief !== undefined ?
                                     this.currentConsultant.consultantBrief :
-                                '(暂无)' }}
+                                    '(暂无)' }}
                             </div>
                         </el-card>
                     </el-col>
                 </el-row>
+                <template v-if="consultantComments !== null">
+                    <el-card class="box-card">
+                        <div slot="header" class="clearfix">
+                            <span id="item-title">用户评价（最近两次）</span>
+                        </div>
+                        <div>
+                            <el-card class="box-card" v-for="(item, index) in consultantComments" :key="index">
+                                <div slot="header" class="clearfix">
+                                    <span id="item-title">用户： {{ item.userName }}</span>
+
+                                    <div style="float: right;">
+                                        评价时间：{{ item.appointmentReplyTime !== undefined ?
+                                            dateTimeFormat(item.appointmentReplyTime) : '(未评价)' }}
+                                    </div>
+                                </div>
+                                <div class="text item">
+                                    {{ item.appointmentComment !== undefined ? item.appointmentComment : '(暂无)' }}
+                                </div>
+                            </el-card>
+                        </div>
+                    </el-card>
+                </template>
             </div>
             <div slot="footer">
                 <el-button @click="consultantDialogVisible = false">返 回</el-button>
+            </div>
+        </el-dialog>
+
+        <el-dialog title="新建预约" :visible.sync="createAppointmentDialogVisible" width="60vw"
+            :before-close="createAppointmentDialogBeforeClose">
+            <el-form :model="insertForm" label-width="120px" ref="insertForm">
+                <el-row :gutter="10" style="text-align: start;">
+                    <el-col :span="8">
+                        <el-form-item label="咨询领域：">
+                            <el-select v-model="insertForm.fieldId" placeholder="请选择咨询领域" @change="onChangeField"
+                                clearable>
+                                <el-option v-for="item in fields" :key="item.fieldId" :label="item.fieldName"
+                                    :value="item.fieldId">
+                                </el-option>
+                            </el-select>
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="8">
+                        <el-form-item label="咨询师：">
+                            <el-select v-model="insertForm.consultantId" placeholder="选择咨询师" clearable
+                                @change="onChangeConsultant">
+                                <el-option v-for="item in consultants" :key="item.consultantId" :label="item.adminName"
+                                    :value="item.consultantId">
+                                </el-option>
+                            </el-select>
+                        </el-form-item>
+                    </el-col>
+                </el-row>
+                <el-row :gutter="10" v-if="this.currentConsultantI !== null">
+                    <el-col :span="3" :offset="1">
+                        <img src="@/assets/face_images/default_face.jpg" alt="头像" id="face-img">
+                    </el-col>
+                    <el-col :span="18" :offset="2">
+                        <el-row :gutter="10">
+                            <el-col :span="24">
+                                <el-descriptions class="margin-top" direction="vertical" :column="5" border
+                                    v-if="this.currentConsultantI !== null">
+                                    <el-descriptions-item v-if="this.currentConsultantI !== null">
+                                        <template slot="label">
+                                            <i class="el-icon-user"></i>
+                                            咨询师：
+                                        </template>
+                                        {{ this.currentConsultantI.adminName }}
+                                    </el-descriptions-item>
+                                    <el-descriptions-item v-if="this.currentConsultantI !== null">
+                                        <template slot="label">
+                                            <i class="el-icon-s-cooperation"></i>
+                                            咨询师职称：
+                                        </template>
+                                        {{ this.currentConsultantI.consultantTitle }}
+                                    </el-descriptions-item>
+                                    <el-descriptions-item v-if="this.currentConsultantI !== null">
+                                        <template slot="label">
+                                            <i class="el-icon-s-order"></i>
+                                            咨询师领域：
+                                        </template>
+                                        {{ this.currentConsultantI.fieldName }}
+                                    </el-descriptions-item>
+                                    <el-descriptions-item v-if="this.currentConsultantI !== null">
+                                        <template slot="label">
+                                            <i class="el-icon-location"></i>
+                                            咨询师院校：
+                                        </template>
+                                        {{ this.currentConsultantI.consultantCollege }}
+                                    </el-descriptions-item>
+                                    <el-descriptions-item v-if="this.currentConsultantI !== null">
+                                        <template slot="label">
+                                            <i class="el-icon-goods"></i>
+                                            费用：
+                                        </template>
+                                        {{ this.currentConsultantI.consultantPrice }}
+                                    </el-descriptions-item>
+                                    <el-descriptions-item v-if="this.currentConsultantI !== null">
+                                        <template slot="label">
+                                            <i class="el-icon-s-data"></i>
+                                            专业背景：
+                                        </template>
+                                        {{ this.currentConsultantI.consultantBackground }}
+                                    </el-descriptions-item>
+
+                                </el-descriptions>
+                            </el-col>
+                        </el-row>
+                    </el-col>
+                </el-row>
+                <el-row :gutter="10" v-if="this.currentConsultantI !== null" style="margin-top: 20px;">
+                    <el-col :span="14">
+                        <el-form-item label="选择预约日期：">
+                            <el-date-picker v-model="dateSelected" type="date" placeholder="选择日期">
+                            </el-date-picker>
+                        </el-form-item>
+                    </el-col>
+                </el-row>
+                <el-row :gutter="10" v-if="this.currentConsultantI !== null">
+                    <el-col :span="14">
+                        <el-form-item label="选择预约时段：">
+                            <el-select v-model="insertForm.appointmentTimeId" placeholder="选择时段">
+                                <el-option v-for="item in appointmentTimeList" :key="item.appointmentTimeId"
+                                    :label="displayTimeHourMinSecond(item.appointmentStartTime) + '-' + displayTimeHourMinSecond(item.appointmentEndTime) + (item.userId !== undefined ? (item.userId === $store.state.userData.userId ? '（您已预约该时段）' : '（已有用户预约）') : '' )"
+                                    :value="item.appointmentTimeId" :disabled="item.userId !== undefined">
+                                </el-option>
+                            </el-select>
+                        </el-form-item>
+                    </el-col>
+                </el-row>
+                <el-row :gutter="10" v-if="this.currentConsultantI !== null">
+                    <el-col :span="24">
+                        <el-card class="box-card">
+                            <div slot="header" class="clearfix">
+                                <span id="item-title">问题描述</span>
+                            </div>
+                            <div class="text item">
+                                <el-input type="textarea" :autosize="{ minRows: 5 }" placeholder="请输入问题描述"
+                                    v-model="insertForm.appointmentDetail" resize="none"
+                                    style="font-size: 15px; width: 90%;">
+                                </el-input>
+                            </div>
+                        </el-card>
+                    </el-col>
+                </el-row>
+            </el-form>
+
+            <div slot="footer">
+                <el-button @click="createAppointmentDialogVisible = false">取 消</el-button>
+                <el-button type="primary" @click="createAppointment">确 定</el-button>
             </div>
         </el-dialog>
 
@@ -287,12 +442,14 @@
 
 <script>
 import http from '@/utils/request'
+import moment from 'moment';
 export default {
     name: 'CreateAppointmentView',
     data() {
         return {
             appointments: [],
             appointmentStatusList: [],
+            appointmentTimeList: [],
             fields: [],
             pageInfo: {
                 currentPage: 1,
@@ -302,16 +459,47 @@ export default {
             updateForm: {
                 appointmentComment: ''
             },
+            consultantComments: [],
             consultantDialogVisible: false,
             currentConsultant: null,
+            currentConsultantI: null,
             commentDialogVisible: false,
             detailDialogVisible: false,
-            currentAppointment: null
+            dateSelected: null,
+            currentAppointment: null,
+            createAppointmentDialogVisible: false,
+            consultants: [],
+            insertForm: {
+                fieldId: null,
+                consultantId: null,
+                appointmentTimeId: null,
+                appointmentDetail: null,
+            }
         }
+    },
+    watch: {
+        'insertForm.consultantId'(newVal, oldVal) {
+            if (newVal === null) {
+                this.currentConsultantI = null;
+            } else {
+                this.insertForm.appointmentTimeId = null;
+                this.appointmentTimeList = [];
+            }
+        },
+        dateSelected(newVal, oldVal) {
+            if (newVal !== null) {
+                this.getAppointmentTimeList();
+            } else {
+                this.insertForm.appointmentTimeId = null;
+                this.appointmentTimeList = [];
+            }
+        },
     },
     mounted() {
         this.getAppointmentStatusList();
         this.getAppointment();
+        this.getFields();
+        this.getConsultants();
     },
     methods: {
         getAppointment() {
@@ -340,7 +528,7 @@ export default {
             var d = "0" + date.getDate();
             var h = "0" + date.getHours();
             var minute = "0" + date.getMinutes();
-            return y + "年" + m.substring(m.length - 2, m.length) + "月" + d.substring(d.length - 2, d.length) + "日" + h.substring(h.length - 2, h.length) + ":" + minute.substring(minute.length - 2, minute.length);
+            return y + "年" + m.substring(m.length - 2, m.length) + "月" + d.substring(d.length - 2, d.length) + "日 " + h.substring(h.length - 2, h.length) + ":" + minute.substring(minute.length - 2, minute.length);
         },
         stringLengthLimit(str, len) {
             if (str.length > len) {
@@ -375,17 +563,40 @@ export default {
                 }
             })
         },
-        onCheckConsultant(row) {
+        async onCheckConsultant(row) {
             this.currentAppointment = row;
-            this.getConsultant();
+            await this.getConsultant();
+            this.getConsultantComment();
             this.consultantDialogVisible = true;
         },
-        async getConsultant() {
+        async getConsultant(id) {
+            let consultantId, flag = false;
+            if (id !== undefined) {
+                flag = true;
+                consultantId = id
+            } else {
+                flag = false;
+                consultantId = this.currentAppointment.consultantId
+            }
+
             await http.post("/consultant/get_consultant_by_id", {
-                consultantId: this.currentAppointment.consultantId
+                consultantId: consultantId
             }).then(res => {
                 if (res.code == 200) {
-                    this.currentConsultant = res.data;
+                    if (flag) {
+                        this.currentConsultantI = res.data;
+                    } else {
+                        this.currentConsultant = res.data;
+                    }
+                }
+            })
+        },
+        async getConsultantComment() {
+            await http.post("/appointment/get_appointment_by_consultant_id", {
+                consultantId: this.currentConsultant.consultantId
+            }).then(res => {
+                if (res.code == 200) {
+                    this.consultantComments = res.data;
                 }
             })
         },
@@ -401,6 +612,7 @@ export default {
                 appointmentId: this.currentAppointment.appointmentId,
                 appointmentStatus: 4,
                 appointmentComment: this.updateForm.appointmentComment,
+                appointmentCommentTime: new Date()
             }).then(res => {
                 if (res.code == 200) {
                     this.$message({
@@ -417,6 +629,72 @@ export default {
         },
         consultantDialogBeforeClose(done) {
             done();
+        },
+        onCreateAppointment() {
+            this.createAppointmentDialogVisible = true;
+            this.insertForm = {
+                fieldId: null,
+                consultantId: null,
+                appointmentTimeId: null,
+                appointmentDetail: null,
+            };
+        },
+        createAppointmentDialogBeforeClose(done) {
+            done();
+        },
+        getConsultants() {
+            http.post("/consultant/get_consultant_by_field_id", {
+                fieldId: this.insertForm.fieldId === undefined ? null : this.insertForm.fieldId,
+            }).then(res => {
+                if (res.code == 200) {
+                    this.consultants = res.data;
+                }
+            })
+        },
+        onChangeField() {
+            this.getConsultants();
+            this.insertForm.consultantId = null;
+            this.currentConsultantI = null;
+        },
+        onChangeConsultant(id) {
+            this.getConsultant(id);
+        },
+        // 选择咨询师后生成可预约时间列表
+        getAppointmentTimeList() {
+            http.post("/appointment_time/get_appointment_time_by_consultant_id", {
+                consultantId: this.insertForm.consultantId,
+                startTime: moment(this.dateSelected).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
+                endTime: moment(this.dateSelected).endOf('day').format('YYYY-MM-DD HH:mm:ss')
+            }).then(res => {
+                if (res.code == 200) {
+                    this.appointmentTimeList = res.data;
+                } else {
+                    this.appointmentTimeList = [];
+                }
+            })
+        },
+        displayTimeHourMinSecond(time) {
+            return moment(time).format('HH:mm:ss');
+        },
+        createAppointment() {
+            http.post("/appointment/insert_appointment", {
+                fieldId: this.insertForm.fieldId,
+                consultantId: this.insertForm.consultantId,
+                appointmentTimeId: this.insertForm.appointmentTimeId,
+                appointmentDetail: this.insertForm.appointmentDetail,
+                appointmentStatus: 1,
+                userId: this.$store.state.userData.userId,
+                appointmentPrice: this.currentConsultantI.consultantPrice,
+            }).then(res => {
+                if (res.code == 200) {
+                    this.$message({
+                        message: '预约成功',
+                        type: 'success'
+                    });
+                    this.getAppointment();
+                    this.createAppointmentDialogVisible = false;
+                }
+            })
         }
     }
 }
